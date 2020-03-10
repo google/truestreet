@@ -1,0 +1,74 @@
+# gazelle:proto disable_global
+
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+load("@bazel_gazelle//:def.bzl", "gazelle")
+load("@io_bazel_rules_docker//go:image.bzl", "go_image")
+load("@io_bazel_rules_docker//container:container.bzl", "container_push", "container_image")
+
+gazelle(
+    name = "gazelle",
+    prefix = "github.com/google/truestreet",
+)
+
+go_library(
+    name = "go_default_library",
+    srcs = ["truestreet.go"],
+    importpath = "github.com/google/truestreet",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//database:go_default_library",
+        "//vendor/cloud.google.com/go/spanner:go_default_library",
+        "//vendor/github.com/golang/protobuf/proto:go_default_library",
+        "//vendor/github.com/golang/snappy:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus:go_default_library",
+        "//vendor/github.com/prometheus/client_golang/prometheus/promhttp:go_default_library",
+        "//vendor/github.com/prometheus/common/model:go_default_library",
+        "//vendor/github.com/prometheus/prometheus/prompb:go_default_library",
+        "//vendor/google.golang.org/grpc/codes:go_default_library",
+    ],
+)
+
+go_binary(
+    name = "truestreet",
+    embed = [":go_default_library"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "go_default_test",
+    size = "small",
+    srcs = ["truestreet_test.go"],
+    embed = [":go_default_library"],
+    deps = [
+        "//database:go_default_library",
+        "//vendor/github.com/kylelemons/godebug/pretty:go_default_library",
+        "//vendor/github.com/prometheus/common/model:go_default_library",
+        "//vendor/github.com/prometheus/prometheus/prompb:go_default_library",
+    ],
+)
+
+go_image(
+    name = "truestreet_image_base",
+    embed = [":go_default_library"],
+    gc_linkopts = [
+        "-linkmode",
+        "external",
+        "-extldflags",
+        "-static",
+    ],
+)
+
+container_image(
+    name="truestreet_image",
+    base=":truestreet_image_base",
+    ports=["5678"],
+    )
+
+container_push(
+    name="push",
+    format="Docker",
+    image=":truestreet_image",
+    registry="gcr.io",
+    repository="<project-id>/truestreet",
+    tag = "latest",
+    )
