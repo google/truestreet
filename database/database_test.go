@@ -304,7 +304,7 @@ func TestOrderTimeSeries(t *testing.T) {
 	for _, tc := range tests {
 		got := orderTimeSeries(tc.input)
 		if diff := pretty.Compare(got, tc.want); diff != "" {
-			t.Errorf("test %s failed. orderTimeSeries(%v) = \n%v\n, wanted \n%v\n %s", tc.name, tc.input, got, tc.want)
+			t.Errorf("test %s failed. orderTimeSeries(%v) = \n%v\n, wanted \n%v", tc.name, tc.input, got, tc.want)
 		}
 	}
 }
