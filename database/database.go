@@ -366,9 +366,9 @@ func rowsToTimeseries(iter *spanner.RowIterator) ([]*prompb.TimeSeries, error) {
 		}
 		fp := metric.Fingerprint()
 		if _, ok := tsMap[fp]; !ok {
-			var labels []prompb.Label
+			var labels []*prompb.Label
 			for k, v := range metric {
-				labels = append(labels, prompb.Label{Name: string(k), Value: string(v)})
+				labels = append(labels, &prompb.Label{Name: string(k), Value: string(v)})
 			}
 			tsMap[fp] = &prompb.TimeSeries{Labels: labels}
 		}
