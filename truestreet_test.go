@@ -38,9 +38,9 @@ func TestProtoToTimeseries(t *testing.T) {
 	}{
 		{
 			input: &prompb.WriteRequest{
-				Timeseries: []prompb.TimeSeries{
+				Timeseries: []*prompb.TimeSeries{
 					{
-						Labels: []prompb.Label{
+						Labels: []*prompb.Label{
 							{Name: "Type", Value: "Test"},
 							{Name: "Foo", Value: "Bar"},
 						},
@@ -63,9 +63,9 @@ func TestProtoToTimeseries(t *testing.T) {
 		},
 		{
 			input: &prompb.WriteRequest{
-				Timeseries: []prompb.TimeSeries{
+				Timeseries: []*prompb.TimeSeries{
 					{
-						Labels: []prompb.Label{
+						Labels: []*prompb.Label{
 							{Name: "Type", Value: "Test"},
 							{Name: "Foo", Value: "Bar"},
 						},
@@ -76,7 +76,7 @@ func TestProtoToTimeseries(t *testing.T) {
 						},
 					},
 					{
-						Labels: []prompb.Label{
+						Labels: []*prompb.Label{
 							{Name: "Animal", Value: "Cow"},
 							{Name: "Type", Value: "Drill"},
 						},
