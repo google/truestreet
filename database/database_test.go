@@ -738,7 +738,7 @@ func TestGenerateQuery(t *testing.T) {
 				SELECT tsid, lid FROM (
 					(SELECT tsid FROM index JOIN (
 						SELECT lid FROM labels WHERE
-							(name=@name0 AND REGEXP_CONTAINS(value, ^(@value0)$))
+							(name=@name0 AND REGEXP_CONTAINS(value, r"^(@value0)$"))
 						) USING (lid))
 					EXCEPT ALL (
 					SELECT tsid FROM index JOIN (
@@ -796,7 +796,7 @@ func TestGenerateQuery(t *testing.T) {
 				SELECT tsid, lid FROM (
 					(SELECT tsid FROM index JOIN (
 						SELECT lid FROM labels WHERE
-							(name=@name0 AND REGEXP_CONTAINS(value, ^(@value0)$))
+							(name=@name0 AND REGEXP_CONTAINS(value, r"^(@value0)$"))
 					) USING (lid) INTERSECT ALL
 					SELECT tsid FROM index JOIN (
 						SELECT lid FROM labels WHERE
@@ -805,7 +805,7 @@ func TestGenerateQuery(t *testing.T) {
 					EXCEPT ALL (
 					SELECT tsid FROM index JOIN (
 						SELECT lid FROM labels WHERE
-							(name=@name2 AND REGEXP_CONTAINS(value, ^(@value2)$))
+							(name=@name2 AND REGEXP_CONTAINS(value, r"^(@value2)$"))
 					) USING(lid))
 				) JOIN index USING(tsid)
 			) JOIN labels USING(lid) GROUP BY tsid

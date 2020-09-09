@@ -496,7 +496,7 @@ var (
 	{{- define "subQuery" -}}
 	SELECT tsid FROM index JOIN (
 		SELECT lid FROM labels WHERE
-		(name=@name{{.Index}}{{if and (eq .Type "EQ" "NEQ") (.Value)}} AND value=@value{{.Index}}{{else if eq .Type "RE" "NRE"}} AND REGEXP_CONTAINS(value, ^(@value{{.Index}})$){{end}})
+		(name=@name{{.Index}}{{if and (eq .Type "EQ" "NEQ") (.Value)}} AND value=@value{{.Index}}{{else if eq .Type "RE" "NRE"}} AND REGEXP_CONTAINS(value, r"^(@value{{.Index}})$"){{end}})
 	) USING (lid)
 	{{- end -}}
 	{{- define "tsidQuery" -}}
