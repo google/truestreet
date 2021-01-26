@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"cloud.google.com/go/spanner"
+	"google3/third_party/golang/cloud/spanner/spanner"
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/prometheus/client_golang/prometheus"
@@ -277,12 +277,12 @@ func TestRowToSample(t *testing.T) {
 
 func TestOrderTimeSeries(t *testing.T) {
 	ts0 := &prompb.TimeSeries{
-		Labels: []prompb.Label{
+		Labels: []*prompb.Label{
 			{Name: "__name__", Value: "events_total"},
 		},
 	}
 	ts1 := &prompb.TimeSeries{
-		Labels: []prompb.Label{
+		Labels: []*prompb.Label{
 			{Name: "__name__", Value: "fake_name"},
 		},
 	}

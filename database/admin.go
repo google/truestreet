@@ -20,11 +20,11 @@ import (
 	"regexp"
 	"sync"
 
-	"cloud.google.com/go/spanner"
+	"google3/third_party/golang/cloud/spanner/spanner"
 	"google.golang.org/api/iterator"
 	"github.com/prometheus/common/model"
 
-	admin "cloud.google.com/go/spanner/admin/database/apiv1"
+	admin "google3/third_party/golang/cloud/spanner/admin/database/apiv1/database"
 	dpb "google.golang.org/genproto/googleapis/spanner/admin/database/v1"
 )
 
