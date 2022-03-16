@@ -27,7 +27,7 @@ import (
 	"regexp"
 	"sort"
 
-	"google3/third_party/golang/cloud/spanner/spanner"
+	"cloud.google.com/go/spanner"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/common/model"
 	prompb "github.com/prometheus/prometheus/prompb"

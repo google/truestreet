@@ -25,7 +25,7 @@ import (
 	"log"
 	"net/http"
 
-	"google3/third_party/golang/cloud/spanner/spanner"
+	"cloud.google.com/go/spanner"
 	"google.golang.org/grpc/codes"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"

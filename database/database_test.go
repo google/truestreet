@@ -23,7 +23,7 @@ import (
 	"testing"
 	"time"
 
-	"google3/third_party/golang/cloud/spanner/spanner"
+	"cloud.google.com/go/spanner"
 	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/prometheus/client_golang/prometheus"
