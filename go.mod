@@ -26,7 +26,7 @@ require (
   github.com/cncf/xds/go v0.0.0-20211011173535-cb28da3451f1 // indirect
   github.com/envoyproxy/go-control-plane v0.9.10-0.20210907150352-cf90f659a021 // indirect
   github.com/envoyproxy/protoc-gen-validate v0.1.0 // indirect
-  github.com/gogo/protobuf v1.3.1 // indirect
+  github.com/gogo/protobuf v1.3.2 // indirect
   github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e // indirect
   github.com/googleapis/gax-go/v2 v2.2.0 // indirect
   github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
