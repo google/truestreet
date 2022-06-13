@@ -26,6 +26,13 @@ go build
 go test
 ```
 
+A minimal docker image is produced by following command.
+
+```shell
+docker build -t truestreet .
+```
+
+
 ### Google Cloud Spanner setup
 
 If you have not already, set up the
