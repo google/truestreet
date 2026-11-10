@@ -17,6 +17,10 @@
 package main
 
 import (
+	"bytes"
+	"encoding/binary"
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/google/truestreet/database"
@@ -24,6 +28,7 @@ import (
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/prometheus/common/model"
 	"github.com/prometheus/prometheus/prompb"
+	"github.com/golang/snappy"
 )
 
 func TestProtoToTimeseries(t *testing.T) {
@@ -120,5 +125,74 @@ func TestProtoToSamplesErrors(t *testing.T) {
 		if err == nil {
 			t.Errorf("protoToTimeseries(%v) = %v, %v; want _, error", tc, got, err)
 		}
+	}
+}
+
+// snappyHeader returns a snappy block whose varint header declares decodedLen,
+// followed by a single trailing byte.
+func snappyHeader(decodedLen uint64) []byte {
+	buf := make([]byte, binary.MaxVarintLen64+1)
+	n := binary.PutUvarint(buf, decodedLen)
+	return buf[:n+1]
+}
+
+func TestDecodeSnappyBody(t *testing.T) {
+	payload := []byte("hello truestreet")
+	tests := []struct {
+		name       string
+		body       []byte
+		wantStatus int
+		wantBody   []byte
+	}{
+		{
+			name:       "valid",
+			body:       snappy.Encode(nil, payload),
+			wantStatus: http.StatusOK,
+			wantBody:   payload,
+		},
+		{
+			// Varint header declaring a 1 GiB decoded length followed by two
+			// literal bytes. Must be rejected before any allocation happens.
+			name:       "decompression bomb",
+			body:       []byte{0x80, 0x80, 0x80, 0x80, 0x04, 0x00, 0x00},
+			wantStatus: http.StatusRequestEntityTooLarge,
+		},
+		{
+			name:       "decoded length just over limit",
+			body:       snappyHeader(maxDecodedBytes + 1),
+			wantStatus: http.StatusRequestEntityTooLarge,
+		},
+		{
+			name:       "compressed body too large",
+			body:       make([]byte, snappy.MaxEncodedLen(maxDecodedBytes)+1),
+			wantStatus: http.StatusRequestEntityTooLarge,
+		},
+		{
+			name:       "malformed header",
+			body:       []byte{0xff, 0xff, 0xff, 0xff, 0xff, 0xff},
+			wantStatus: http.StatusBadRequest,
+		},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodPost, "/write", bytes.NewReader(tc.body))
+			rec := httptest.NewRecorder()
+			got, err := decodeSnappyBody(rec, req)
+			if tc.wantStatus == http.StatusOK {
+				if err != nil {
+					t.Fatalf("decodeSnappyBody() returned error: %v", err)
+				}
+				if !bytes.Equal(got, tc.wantBody) {
+					t.Errorf("decodeSnappyBody() = %q, want %q", got, tc.wantBody)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("decodeSnappyBody() = %q, nil; want error", got)
+			}
+			if rec.Code != tc.wantStatus {
+				t.Errorf("decodeSnappyBody() status = %d, want %d", rec.Code, tc.wantStatus)
+			}
+		})
 	}
 }

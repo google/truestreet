@@ -21,6 +21,7 @@ import (
 	"errors"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -35,6 +36,15 @@ import (
 	"github.com/golang/snappy"
 	"github.com/google/truestreet/database"
 )
+
+// maxDecodedBytes bounds the size of a snappy-decoded request body. Prometheus
+// remote read/write requests are typically well under 1 MB, so 50 MB is a
+// generous upper limit that still prevents decompression-bomb memory
+// exhaustion.
+const maxDecodedBytes = 50 * 1024 * 1024
+
+// errRequestTooLarge is returned when a request body exceeds the allowed size.
+var errRequestTooLarge = errors.New("request body too large")
 
 // Command line flags and database.
 var (
@@ -144,6 +154,44 @@ func protoToTimeseries(req *prompb.WriteRequest) (*database.TimeSeries, error) {
 	return &database.TimeSeries{Metrics: metrics, Samples: samples}, nil
 }
 
+// decodeSnappyBody reads a snappy block-compressed request body and returns the
+// decoded bytes. Both the compressed body size and the header-declared decoded
+// length are bounded by maxDecodedBytes so that a small malicious payload cannot
+// force a huge memory allocation. On failure it writes an HTTP error response
+// to w and returns a non-nil error.
+func decodeSnappyBody(w http.ResponseWriter, r *http.Request) ([]byte, error) {
+	maxCompressed := int64(snappy.MaxEncodedLen(maxDecodedBytes))
+	compressed, err := ioutil.ReadAll(io.LimitReader(r.Body, maxCompressed+1))
+	if err != nil {
+		log.Printf("read error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return nil, err
+	}
+	if int64(len(compressed)) > maxCompressed {
+		log.Printf("compressed request body exceeds limit %d\n", maxCompressed)
+		http.Error(w, errRequestTooLarge.Error(), http.StatusRequestEntityTooLarge)
+		return nil, errRequestTooLarge
+	}
+	dlen, err := snappy.DecodedLen(compressed)
+	if err != nil {
+		log.Printf("snappy decoding error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return nil, err
+	}
+	if dlen > maxDecodedBytes {
+		log.Printf("snappy decoded length %d exceeds limit %d\n", dlen, maxDecodedBytes)
+		http.Error(w, errRequestTooLarge.Error(), http.StatusRequestEntityTooLarge)
+		return nil, errRequestTooLarge
+	}
+	buf, err := snappy.Decode(nil, compressed)
+	if err != nil {
+		log.Printf("snappy decoding error: %v\n", err)
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return nil, err
+	}
+	return buf, nil
+}
+
 // writeHandler takes in write requests from prometheus and sends them to
 // be written to Cloud Spanner.
 func writeHandler(w http.ResponseWriter, r *http.Request) {
@@ -154,16 +202,8 @@ func writeHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "body is nil", http.StatusBadRequest)
 		return
 	}
-	compressed, err := ioutil.ReadAll(r.Body)
+	reqBuf, err := decodeSnappyBody(w, r)
 	if err != nil {
-		log.Printf("read error: %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	reqBuf, err := snappy.Decode(nil, compressed)
-	if err != nil {
-		log.Printf("snappy decoding error: %v\n", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -202,16 +242,8 @@ func readHandler(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "body is nil", http.StatusBadRequest)
 		return
 	}
-	compressed, err := ioutil.ReadAll(r.Body)
+	reqBuf, err := decodeSnappyBody(w, r)
 	if err != nil {
-		log.Printf("read error : %v\n", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	reqBuf, err := snappy.Decode(nil, compressed)
-	if err != nil {
-		log.Printf("snappy decoding error : %v\n", err)
-		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
@@ -239,7 +271,7 @@ func readHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/x-protobuf")
 	w.Header().Set("Content-Encoding", "snappy")
 
-	compressed = snappy.Encode(nil, data)
+	compressed := snappy.Encode(nil, data)
 	if _, err := w.Write(compressed); err != nil {
 		log.Printf("error writing response : %v\n", err)
 	}
